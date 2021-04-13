@@ -48,6 +48,7 @@ if __name__=='__main__':
 
     iteration = 0
     save_interval = len(data_loader) // args.save_interval
+    interval = 10000
     print(args)
     for ep in range(args.epochs):
         pbar = tqdm(data_loader)
@@ -67,6 +68,10 @@ if __name__=='__main__':
                 torch.save({
                     'model': model.state_dict()
                 }, os.path.join(args.output_dir, 'model_{}.pth'.format(iteration // save_interval)))
+            if iteration % interval == 0:
+                torch.save({
+                    'model': model.state_dict()
+                }, os.path.join(args.output_dir, 'model.pth'.format(iteration)))
 
             iteration += 1
 

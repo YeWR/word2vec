@@ -13,15 +13,15 @@ class SkipGramModel(torch.nn.Module):
         self.v_embedding_matrix.weight.data.uniform_(-0, 0)
 
     def forward(self, pos_u, pos_neg_v):
-        batch_size, pred_size = pos_neg_v.shape
 
         embed_u = self.u_embedding_matrix(pos_u)
         embed_v = self.v_embedding_matrix(pos_neg_v)
 
-        label = torch.zeros(batch_size).to(pos_u.device).long()
         pred = embed_u.bmm(embed_v.transpose(1, 2)).squeeze()
 
-        loss = F.cross_entropy(pred, label)
+        loss_pos = torch.log(torch.nn.Sigmoid()(pred[:, 0])).sum()
+        loss_neg = -torch.log(torch.nn.Sigmoid()(pred[:, 1:])).sum()
+        loss = loss_pos + loss_neg
         return loss
 
     def inference(self, pos):

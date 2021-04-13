@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader
 
 class Word2vecDataset(torch.utils.data.Dataset):
     """A dataset that provides helpers for batching."""
-    def __init__(self, filename, vocab_file, min_count=5, window=5, fix_vocab_len=5e5, num_sent=1e7):
+    def __init__(self, filename, vocab_file, min_count=5, window=5, fix_vocab_len=1e4, num_sent=1e7):
         vocab_file += ".{}.{}".format(int(num_sent) if num_sent else None, int(fix_vocab_len))
         # self.positive_file = "/mnt/word2vec/wiki_pair.{}.{}.{}.bin".format(int(num_sent) if num_sent else None, window, int(fix_vocab_len))
         self.center_file = "wiki_center.{}.{}".format(int(num_sent) if num_sent else None, int(fix_vocab_len))
@@ -24,12 +24,15 @@ class Word2vecDataset(torch.utils.data.Dataset):
                     setattr(self, k, v)
         else:
             self.vocab = self.get_vocab(min_count, vocab_file, fix_vocab_len=fix_vocab_len, num_sent=num_sent)
+        self.negative_sample_table = np.asarray(self.negative_sample_table)
         self.cumsum_sizes = np.cumsum(self.sizes)
 
         self.init_sample_ratio()
         self.window = window
         # self.get_positive(num_sent)
         self.get_center(num_sent)
+
+        self.negative_num = 5
         print("load_done")
 
     def get_center(self, num_sent=None):
@@ -85,6 +88,15 @@ class Word2vecDataset(torch.utils.data.Dataset):
 
             self.len_vocab = len(self.word_frequency)
 
+        self.negative_sample_table = []
+        sample_table_size = 1e8
+        pow_frequency = np.array(list(word_frequency.values())) ** 0.75
+        words_pow = sum(pow_frequency)
+        ratio = pow_frequency / words_pow
+        count = np.round(ratio * sample_table_size)
+        for wid, c in enumerate(count):
+            self.negative_sample_table += [wid] * int(c)
+
         with open(vocab_file, "w") as f:
             json.dump({
                 "word2id": self.word2id,
@@ -92,6 +104,7 @@ class Word2vecDataset(torch.utils.data.Dataset):
                 "word_frequency": self.word_frequency,
                 "sizes": self.sizes,
                 "len_vocab": self.len_vocab,
+                "negative_sample_table": self.negative_sample_table
             }, f)
 
     def init_sample_ratio(self):
@@ -106,7 +119,14 @@ class Word2vecDataset(torch.utils.data.Dataset):
         np.random.shuffle(self.sample_table)
         self.sample_table_size = self.sample_table.size
 
-    # @profile
+    def get_neg_word(self, u):
+        neg_v = []
+        while len(neg_v) < self.negative_num:
+            n_w = np.random.choice(self.negative_sample_table, size=self.negative_num).tolist()[0]
+            if n_w != u:
+                neg_v.append(n_w)
+        return neg_v
+
     def __getitem__(self, index):
         # n = np.searchsorted(self.cumsum_sizes - 1, index)
         n = bisect.bisect(self.cumsum_sizes, index)
@@ -126,32 +146,21 @@ class Word2vecDataset(torch.utils.data.Dataset):
 
         rand_idx = index % (self.sample_table_size - 5)
         sample = self.sample_table[rand_idx: rand_idx + 5]
-        return pos + sample.tolist()
+        # neg_u = [pos[0] for _ in range(self.negative_num)]
+        # neg_v = [v for v in self.get_neg_word(pos[0])]
+        neg_v = sample.tolist()
+        return pos + neg_v
 
     def collater(self, samples):
-        """Merge a list of samples to form a mini-batch.
-
-        Args:
-            samples (List[dict]): samples to collate
-
-        Returns:
-            dict: a mini-batch suitable for forwarding with a Model
-        """
-
-        pos_u = torch.LongTensor(samples)[:, 0]
-        pos_v = torch.LongTensor(samples)[:, 1]
-        neg_v = torch.LongTensor(samples)[:, 2:]
-        return {
-            "pos_u": pos_u,
-            "pos_v": pos_v,
-            "neg_v": neg_v
-        }
+        pos_u = torch.LongTensor(samples)[:, 0].unsqueeze(1)
+        pos_neg_v = torch.LongTensor(samples)[:, 1:]
+        return pos_u, pos_neg_v
 
     def attr(self, attr: str, index: int):
         return getattr(self, attr, None)
+
 
 if __name__ == "__main__":
     dataset = Word2vecDataset("wiki.txt", "wiki.vocab")
     for i in range(100):
         print(dataset[i])
-

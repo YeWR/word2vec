@@ -23,3 +23,7 @@ class SkipGramModel(torch.nn.Module):
 
         loss = F.cross_entropy(pred, label)
         return loss
+
+    def inference(self, pos):
+        embed_u = self.u_embedding_matrix(pos)
+        return embed_u

@@ -6,7 +6,9 @@ from model import SkipGramModel
 from wiki_dataset import Word2vecDataset
 from tqdm import tqdm
 from torch import optim
+import numpy as np
 from tensorboardX import SummaryWriter
+from eval import test, load_test_file
 
 
 if __name__=='__main__':
@@ -20,6 +22,7 @@ if __name__=='__main__':
     parser.add_argument('--epochs', type=int, default=1, help='epochs')
     parser.add_argument('--save_interval', type=int, default=10, help='save model interval (len // interval)')
     parser.add_argument('--test_interval', type=int, default=10000, help='test interval')
+    parser.add_argument('--test_file', type=str, default='combined.csv', help='test file')
     parser.add_argument('--batch_size', type=int, default=128, help='batch size')
     parser.add_argument('--lr', type=float, default=0.025, help='learning rate')
 
@@ -50,7 +53,17 @@ if __name__=='__main__':
 
     iteration = 0
     save_interval = len(data_loader) // args.save_interval
-    interval = 10000
+    test_interval = args.test_interval
+
+    # ==========================================
+    # load test
+    word1_lst, word2_lst, score_lst = load_test_file(args.test_file, dataset.word2id)
+    word1_id = torch.LongTensor(word1_lst).to(args.device)
+    word2_id = torch.LongTensor(word2_lst).to(args.device)
+    score_lst = np.asarray(score_lst)
+    # ==========================================
+
+    best_coeff = -1.
     print(args)
     for ep in range(args.epochs):
         pbar = tqdm(data_loader)
@@ -63,17 +76,24 @@ if __name__=='__main__':
             loss.backward()
             optimizer.step()
 
-            pbar.set_description("Loss: %.8s" % loss.item())
+            pbar.set_description("Loss: %.8s, best coeff: %.6s" % (loss.item(), best_coeff))
             summary_writer.add_scalar('loss', loss.item(), iteration)
 
             if iteration % save_interval == 0:
                 torch.save({
                     'model': model.state_dict()
                 }, os.path.join(args.output_dir, 'model_{}.pth'.format(iteration // save_interval)))
-            if iteration % interval == 0:
-                torch.save({
-                    'model': model.state_dict()
-                }, os.path.join(args.output_dir, 'model.pth'.format(iteration)))
+            if iteration % test_interval == 0:
+                p_coeff = test(model, word1_id, word2_id, score_lst)
+                model.train()
+
+                summary_writer.add_scalar('test', p_coeff[0], iteration)
+
+                if p_coeff[0] > best_coeff:
+                    best_coeff = p_coeff[0]
+                    torch.save({
+                        'model': model.state_dict()
+                    }, os.path.join(args.output_dir, 'model_best.pth'.format(iteration)))
 
             iteration += 1
 

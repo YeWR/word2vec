@@ -59,7 +59,7 @@ if __name__=='__main__':
     parser.add_argument('--batch_size', type=int, default=128, help='batch size')
     parser.add_argument('--lr', type=float, default=0.0025, help='learning rate')
 
-    parser.add_argument('--load_path', type=str, default='res/lr=0.025-embed=300-vocab=100000/model.pth',
+    parser.add_argument('--load_path', type=str, default='res/lr=0.025-embed=300-vocab=100000/model_best.pth',
                         help='load_path')
     parser.add_argument('--test_file', type=str, default='combined.csv', help='test file')
     parser.add_argument('--device', type=str, default='cuda', help='device')
@@ -86,12 +86,7 @@ if __name__=='__main__':
 
         word1_id = torch.LongTensor(word1_lst).to(args.device)
         word2_id = torch.LongTensor(word2_lst).to(args.device)
-
-        word1_embed = model.inference(word1_id)
-        word2_embed = model.inference(word2_id)
-
-        similarity = torch.cosine_similarity(word1_embed, word2_embed, dim=1)
-        similarity = similarity.detach().cpu().numpy()
         score_lst = np.asarray(score_lst)
-        p_coeff = pearsonr(similarity, score_lst)
+
+        p_coeff = test(model, word1_id, word2_id, score_lst)
         print(p_coeff)

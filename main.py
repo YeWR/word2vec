@@ -12,7 +12,7 @@ from tensorboardX import SummaryWriter
 if __name__=='__main__':
     parser = argparse.ArgumentParser(description='Word2Vec Implementation')
     parser.add_argument('--embedding_dim', type=int, default=300, help='embedding dim')
-    parser.add_argument('--vector_size', type=int, default=10000, help='vector size')
+    parser.add_argument('--vector_size', type=int, default=50000, help='vector size')
     parser.add_argument('--window', type=int, default=5, help='window size')
     parser.add_argument('--min_count', type=int, default=10, help='minimum count')
     parser.add_argument('--workers', type=int, default=4, help='workers')
@@ -41,7 +41,8 @@ if __name__=='__main__':
 
     optimizer = optim.SGD(params=model.parameters(), lr=args.lr)
 
-    dataset = Word2vecDataset("wiki.txt", "wiki.vocab")
+    dataset = Word2vecDataset("wiki.txt", "wiki.vocab", min_count=args.min_count, window=args.window,
+                              fix_vocab_len=args.vector_size)
     data_loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.workers,
                              collate_fn=dataset.collater)
 

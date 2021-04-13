@@ -107,6 +107,12 @@ class Word2vecDataset(torch.utils.data.Dataset):
                 "negative_sample_table": self.negative_sample_table
             }, f)
 
+        word2id_file = vocab_file + '.w2i'
+        with open(word2id_file, "w") as f:
+            json.dump({
+                "word2id": self.word2id,
+            }, f)
+
     def init_sample_ratio(self):
         self.sample_table_size = 1e8
         self.sample_table = []
@@ -123,7 +129,7 @@ class Word2vecDataset(torch.utils.data.Dataset):
         neg_v = []
         while len(neg_v) < self.negative_num:
             n_w = np.random.choice(self.negative_sample_table, size=self.negative_num).tolist()[0]
-            if n_w != u:
+            if n_w != u and n_w >= 0:
                 neg_v.append(n_w)
         return neg_v
 
@@ -144,7 +150,7 @@ class Word2vecDataset(torch.utils.data.Dataset):
         np.random.shuffle(poses)
         pos = [center_word, poses[0] if poses else center_word]
 
-        rand_idx = index % (self.sample_table_size - 5)
+        rand_idx = np.random.randint(0, self.sample_table_size - 5 - 1)
         sample = self.sample_table[rand_idx: rand_idx + 5]
         # neg_u = [pos[0] for _ in range(self.negative_num)]
         # neg_v = [v for v in self.get_neg_word(pos[0])]

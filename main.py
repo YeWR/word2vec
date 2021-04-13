@@ -20,7 +20,7 @@ if __name__=='__main__':
     parser.add_argument('--epochs', type=int, default=1, help='epochs')
     parser.add_argument('--save_interval', type=int, default=10, help='save model interval (len // interval)')
     parser.add_argument('--batch_size', type=int, default=128, help='batch size')
-    parser.add_argument('--lr', type=float, default=0.0025, help='learning rate')
+    parser.add_argument('--lr', type=float, default=0.025, help='learning rate')
 
     parser.add_argument('--output_dir', type=str, default='res', help='output dir')
     parser.add_argument('--device', type=str, default='cuda', help='device')

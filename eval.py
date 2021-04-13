@@ -2,6 +2,7 @@ import torch
 from torch.utils.data import DataLoader
 import argparse
 import os
+import json
 import numpy as np
 from model import SkipGramModel
 from wiki_dataset import Word2vecDataset
@@ -52,9 +53,14 @@ if __name__=='__main__':
 
     args = parser.parse_args()
 
-    dataset = Word2vecDataset("wiki.txt", "wiki.vocab", min_count=args.min_count, window=args.window,
-                              fix_vocab_len=args.vector_size)
-    word1_lst, word2_lst, score_lst = load_test_file(args.test_file, dataset.word2id)
+    # dataset = Word2vecDataset("wiki.txt", "wiki.vocab", min_count=args.min_count, window=args.window,
+    #                           fix_vocab_len=args.vector_size)
+
+    word2id_file = 'wiki.vocab.10000000.100000.w2i'
+    with open(word2id_file) as f:
+        word2id = json.load(f)['word2id']
+
+    word1_lst, word2_lst, score_lst = load_test_file(args.test_file, word2id)
 
     assert os.path.exists(args.load_path)
     model = SkipGramModel(embedding_dim=args.embedding_dim, vocab_dim=args.vector_size)

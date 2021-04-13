@@ -24,15 +24,12 @@ class Word2vecDataset(torch.utils.data.Dataset):
                     setattr(self, k, v)
         else:
             self.vocab = self.get_vocab(min_count, vocab_file, fix_vocab_len=fix_vocab_len, num_sent=num_sent)
-        self.negative_sample_table = np.asarray(self.negative_sample_table)
         self.cumsum_sizes = np.cumsum(self.sizes)
 
         self.init_sample_ratio()
         self.window = window
         # self.get_positive(num_sent)
         self.get_center(num_sent)
-
-        self.negative_num = 5
         print("load_done")
 
     def get_center(self, num_sent=None):
@@ -58,7 +55,7 @@ class Word2vecDataset(torch.utils.data.Dataset):
 
     def __len__(self):
         return self.cumsum_sizes[-1]
-    
+
     def get_vocab(self, min_count, vocab_file, fix_vocab_len=None, num_sent=None):
 
         word_frequency = dict()
@@ -87,15 +84,6 @@ class Word2vecDataset(torch.utils.data.Dataset):
                 wid += 1
 
             self.len_vocab = len(self.word_frequency)
-
-        self.negative_sample_table = []
-        sample_table_size = 1e8
-        pow_frequency = np.array(list(word_frequency.values())) ** 0.75
-        words_pow = sum(pow_frequency)
-        ratio = pow_frequency / words_pow
-        count = np.round(ratio * sample_table_size)
-        for wid, c in enumerate(count):
-            self.negative_sample_table += [wid] * int(c)
 
         with open(vocab_file, "w") as f:
             json.dump({
@@ -150,17 +138,29 @@ class Word2vecDataset(torch.utils.data.Dataset):
         np.random.shuffle(poses)
         pos = [center_word, poses[0] if poses else center_word]
 
-        rand_idx = np.random.randint(0, self.sample_table_size - 5 - 1)
+        rand_idx = index % (self.sample_table_size - 5)
         sample = self.sample_table[rand_idx: rand_idx + 5]
-        # neg_u = [pos[0] for _ in range(self.negative_num)]
-        # neg_v = [v for v in self.get_neg_word(pos[0])]
-        neg_v = sample.tolist()
-        return pos + neg_v
+        return pos + sample.tolist()
 
     def collater(self, samples):
+        """Merge a list of samples to form a mini-batch.
+
+        Args:
+            samples (List[dict]): samples to collate
+
+        Returns:
+            dict: a mini-batch suitable for forwarding with a Model
+        """
+
         pos_u = torch.LongTensor(samples)[:, 0].unsqueeze(1)
-        pos_neg_v = torch.LongTensor(samples)[:, 1:]
-        return pos_u, pos_neg_v
+        pos_v = torch.LongTensor(samples)[:, 1].unsqueeze(1)
+        neg_v = torch.LongTensor(samples)[:, 2:]
+        # return {
+        #     "pos_u": pos_u,
+        #     "pos_v": pos_v,
+        #     "neg_v": neg_v
+        # }
+        return pos_u, pos_v, neg_v
 
     def attr(self, attr: str, index: int):
         return getattr(self, attr, None)

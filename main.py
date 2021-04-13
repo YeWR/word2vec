@@ -19,6 +19,7 @@ if __name__=='__main__':
 
     parser.add_argument('--epochs', type=int, default=1, help='epochs')
     parser.add_argument('--save_interval', type=int, default=10, help='save model interval (len // interval)')
+    parser.add_argument('--test_interval', type=int, default=10000, help='test interval')
     parser.add_argument('--batch_size', type=int, default=128, help='batch size')
     parser.add_argument('--lr', type=float, default=0.025, help='learning rate')
 
@@ -38,6 +39,7 @@ if __name__=='__main__':
 
     model = SkipGramModel(embedding_dim=args.embedding_dim, vocab_dim=args.vector_size)
     model = model.to(args.device)
+    model.train()
 
     optimizer = optim.SGD(params=model.parameters(), lr=args.lr)
 
@@ -53,11 +55,11 @@ if __name__=='__main__':
     for ep in range(args.epochs):
         pbar = tqdm(data_loader)
         for batch in pbar:
-            pos_u, pos_neg_v = batch
-            pos_u, pos_neg_v = pos_u.to(args.device), pos_neg_v.to(args.device)
+            pos_u, pos_v, neg_v = batch
+            pos_u, pos_v, neg_v = pos_u.to(args.device), pos_v.to(args.device), neg_v.to(args.device)
 
             optimizer.zero_grad()
-            loss = model(pos_u, pos_neg_v)
+            loss = model(pos_u, pos_v, neg_v)
             loss.backward()
             optimizer.step()
 

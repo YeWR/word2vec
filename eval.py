@@ -33,6 +33,19 @@ def load_test_file(file_name, word2id):
     return word1_lst, word2_lst, score_lst
 
 
+def test(model, word1_id, word2_id, score_lst):
+    model.eval()
+
+    with torch.no_grad():
+        word1_embed = model.inference(word1_id)
+        word2_embed = model.inference(word2_id)
+
+        similarity = torch.cosine_similarity(word1_embed, word2_embed, dim=1)
+        similarity = similarity.detach().cpu().numpy()
+        p_coeff = pearsonr(similarity, score_lst)
+    return p_coeff
+
+
 if __name__=='__main__':
     parser = argparse.ArgumentParser(description='Word2Vec Implementation')
     parser.add_argument('--embedding_dim', type=int, default=300, help='embedding dim')

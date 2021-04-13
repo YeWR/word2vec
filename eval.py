@@ -46,7 +46,7 @@ if __name__=='__main__':
     parser.add_argument('--batch_size', type=int, default=128, help='batch size')
     parser.add_argument('--lr', type=float, default=0.0025, help='learning rate')
 
-    parser.add_argument('--load_path', type=str, default='res/lr=0.0025-embed=300-vocab=100000/model.pth',
+    parser.add_argument('--load_path', type=str, default='res/lr=0.025-embed=300-vocab=100000/model.pth',
                         help='load_path')
     parser.add_argument('--test_file', type=str, default='combined.csv', help='test file')
     parser.add_argument('--device', type=str, default='cuda', help='device')

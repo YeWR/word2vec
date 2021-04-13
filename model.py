@@ -19,8 +19,8 @@ class SkipGramModel(torch.nn.Module):
 
         pred = embed_u.bmm(embed_v.transpose(1, 2)).squeeze()
 
-        loss_pos = torch.log(torch.nn.Sigmoid()(pred[:, 0])).mean()
-        loss_neg = -torch.log(torch.nn.Sigmoid()(pred[:, 1:])).mean()
+        loss_pos = F.logsigmoid(pred[:, 0]).sum()
+        loss_neg = -F.logsigmoid(pred[:, 1:]).sum()
         loss = loss_pos + loss_neg
         return loss
 

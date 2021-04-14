@@ -21,6 +21,8 @@ def train(args):
     optimizer = optim.SGD(params=model.parameters(), lr=args.lr)
 
     dataset = Word2VecDataset("wiki.txt", "wiki.vocab", count=args.count, window=args.window, vocab_len=args.vocab_len)
+    if args.wordnet_freq > 0:
+        dataset.set_wordnet_aug_freq(args.wordnet_freq)
     data_loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.workers,
                              collate_fn=dataset.collate_fn)
 
@@ -37,7 +39,6 @@ def train(args):
     # ==========================================
 
     best_coeff = -1.
-    print(args)
     for ep in range(args.epochs):
         pbar = tqdm(data_loader)
         for batch in pbar:
@@ -83,6 +84,7 @@ if __name__=='__main__':
     parser.add_argument('--data_tag', type=str, default='wiki', help='test file')
     parser.add_argument('--window', type=int, default=5, help='window size')
     parser.add_argument('--count', type=int, default=10, help='minimum count')
+    parser.add_argument('--wordnet_freq', type=int, default=0, help='minimum count')
     parser.add_argument('--workers', type=int, default=4, help='workers')
 
     parser.add_argument('--epochs', type=int, default=1, help='epochs')
@@ -103,5 +105,6 @@ if __name__=='__main__':
     args.output_dir = os.path.join(args.output_dir, temp_path)
     if not os.path.exists(args.output_dir):
         os.mkdir(args.output_dir)
+    print(args)
 
     model = train(args)

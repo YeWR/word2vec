@@ -1,6 +1,9 @@
 import os
 import pickle
 import json
+from itertools import chain
+import random
+from nltk.corpus import wordnet as wn
 import numpy as np
 import torch.utils.data
 from tqdm import tqdm
@@ -29,7 +32,12 @@ class Word2VecDataset(torch.utils.data.Dataset):
         self.init_sample_ratio()
         # self.get_positive(total_data)
         self.get_center(total_data)
+        self.wordnet_freq = 0
         print("load_done")
+
+    def set_wordnet_aug_freq(self, freq):
+        print('set word net augmentation frequency to {}'.format(freq))
+        self.wordnet_freq = freq
 
     def get_center(self, total_data=None):
         if os.path.exists(self.center_file):
@@ -132,7 +140,17 @@ class Word2VecDataset(torch.utils.data.Dataset):
         poses = cur_sent[max(i-self.window, 0):i] + cur_sent[i+1:i+self.window]
         poses = [pos for pos in poses if pos >= 0]
         np.random.shuffle(poses)
-        pos = [center_word, poses[0] if poses else center_word]
+
+        # use word net augmentation
+        if self.wordnet_freq > 0 and index % self.wordnet_freq == 0:
+            synonyms = wn.synsets(self.id2word[center_word])
+            synonyms_set = set(chain.from_iterable([word.lemma_names() for word in synonyms]))
+            if len(synonyms_set) > 0:
+                pos = [center_word, random.sample(synonyms_set, 1)[0]]
+            else:
+                pos = [center_word, center_word]
+        else:
+            pos = [center_word, poses[0] if poses else center_word]
 
         index = np.random.randint(0, self.sample_table_size - 5 - 1)
         rand_idx = index % (self.sample_table_size - 5)

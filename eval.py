@@ -5,7 +5,7 @@ import os
 import json
 import numpy as np
 from model import SkipGramModel
-from dataset import Word2vecDataset
+from dataset import Word2VecDataset
 from tqdm import tqdm
 from torch import optim
 from tensorboardX import SummaryWriter

@@ -152,9 +152,9 @@ class Word2VecDataset(torch.utils.data.Dataset):
         else:
             pos = [center_word, poses[0] if poses else center_word]
 
-        index = np.random.randint(0, self.sample_table_size - 5 - 1)
-        rand_idx = index % (self.sample_table_size - 5)
-        sample = self.sample_table[rand_idx: rand_idx + 5]
+        index = np.random.randint(0, self.sample_table_size - self.window - 1)
+        rand_idx = index % (self.sample_table_size - self.window)
+        sample = self.sample_table[rand_idx: rand_idx + self.window]
         return pos + sample.tolist()
 
     def collate_fn(self, batch):

@@ -5,7 +5,7 @@ import os
 import json
 import numpy as np
 from model import SkipGramModel
-from wiki_dataset import Word2vecDataset
+from dataset import Word2vecDataset
 from tqdm import tqdm
 from torch import optim
 from tensorboardX import SummaryWriter
@@ -66,10 +66,7 @@ if __name__=='__main__':
 
     args = parser.parse_args()
 
-    # dataset = Word2vecDataset("wiki.txt", "wiki.vocab", min_count=args.min_count, window=args.window,
-    #                           fix_vocab_len=args.vector_size)
-
-    word2id_file = 'wiki.vocab.10000000.100000.w2i'
+    word2id_file = 'wiki-vocab-10000000-100000-w2i'
     with open(word2id_file) as f:
         word2id = json.load(f)['word2id']
 
@@ -77,6 +74,7 @@ if __name__=='__main__':
 
     assert os.path.exists(args.load_path)
     model = SkipGramModel(embedding_dim=args.embedding_dim, vocab_dim=args.vector_size)
+    print('Load model from {}'.format(args.load_path))
     model.load_state_dict(torch.load(args.load_path)['model'])
 
     model = model.to(args.device)
